@@ -13,13 +13,30 @@ use crate::ibc::IbcEvent;
 
 /// Used in sub-systems that may emit events.
 pub trait EmitEvents {
-    /// Emit an event
-    fn emit(&mut self, value: Event);
+    /// Emit a single [event](Event).
+    fn emit<E>(&mut self, event: E)
+    where
+        E: Into<Event>;
+
+    /// Emit a batch of [events](Event).
+    fn emit_many<B, E>(&mut self, event_batch: B)
+    where
+        B: IntoIterator<Item = E>,
+        E: Into<Event>,
+    {
+        for event in event_batch {
+            self.emit(event);
+        }
+    }
 }
 
 impl EmitEvents for Vec<Event> {
-    fn emit(&mut self, value: Event) {
-        Vec::push(self, value)
+    #[inline]
+    fn emit<E>(&mut self, event: E)
+    where
+        E: Into<Event>,
+    {
+        Vec::push(self, event.into())
     }
 }
 
