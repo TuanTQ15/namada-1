@@ -7,7 +7,7 @@ use namada::core::storage::{BlockHash, BlockResults, Epoch, Header};
 use namada::gas::event::WithGasUsed;
 use namada::governance::pgf::inflation as pgf_inflation;
 use namada::ledger::events::extend::{
-    ComposeEvent, WithBlockHeight, WithInfo, WithLog, WithValidMaspTx,
+    ComposeEvent, Height, Info, Log, ValidMaspTx,
 };
 use namada::ledger::events::{EmitEvents, EventType};
 use namada::ledger::gas::GasMetering;
@@ -20,7 +20,7 @@ use namada::proof_of_stake::storage::{
 use namada::state::write_log::StorageModification;
 use namada::state::{ResultExt, StorageWrite, EPOCH_SWITCH_BLOCKS_DELAY};
 use namada::tx::data::protocol::ProtocolTxType;
-use namada::tx::event::{WithInnerTx, WithResultCode};
+use namada::tx::event::{Code, InnerTx};
 use namada::tx::new_tx_event;
 use namada::vote_ext::ethereum_events::MultiSignedEthEvent;
 use namada::vote_ext::ethereum_tx_data_variants;
@@ -183,12 +183,12 @@ where
                 };
                 response.events.emit(
                     base_event
-                        .compose(WithResultCode(result_code))
-                        .compose(WithInfo(format!(
+                        .with(Code(result_code))
+                        .with(Info(format!(
                             "Tx rejected: {}",
                             &processed_tx.result.info
                         )))
-                        .compose(WithGasUsed(0.into())),
+                        .with(WithGasUsed(0.into())),
                 );
                 continue;
             }
@@ -206,12 +206,12 @@ where
             if result_code != ResultCode::Ok {
                 response.events.emit(
                     new_tx_event(&tx, height.0)
-                        .compose(WithResultCode(result_code))
-                        .compose(WithInfo(format!(
+                        .with(Code(result_code))
+                        .with(Info(format!(
                             "Tx rejected: {}",
                             &processed_tx.result.info
                         )))
-                        .compose(WithGasUsed(0.into())),
+                        .with(WithGasUsed(0.into())),
                 );
                 // if the rejected tx was decrypted, remove it
                 // from the queue of txs to be processed
@@ -276,16 +276,13 @@ where
                             );
                             response.events.emit(
                                 event
-                                    .compose(WithInfo(
+                                    .with(Info(
                                         "Transaction is invalid.".into(),
                                     ))
-                                    .compose(WithLog(
-                                        "Transaction could not be decrypted."
-                                            .into(),
-                                    ))
-                                    .compose(WithResultCode(
-                                        ResultCode::Undecryptable,
-                                    )),
+                                    .with(Log("Transaction could not be \
+                                               decrypted."
+                                        .into()))
+                                    .with(Code(ResultCode::Undecryptable)),
                             );
                             continue;
                         }
@@ -406,7 +403,7 @@ where
                                 .expect("Missing required wrapper arguments")
                                 .is_committed_fee_unshield
                             {
-                                tx_event.extend(WithValidMaspTx(tx_index));
+                                tx_event.extend(ValidMaspTx(tx_index));
                             }
                             self.state.in_mem_mut().tx_queue.push(TxInQueue {
                                 tx: wrapper.expect("Missing expected wrapper"),
@@ -424,7 +421,7 @@ where
                                     address::InternalAddress::Masp,
                                 ),
                             ) {
-                                tx_event.extend(WithValidMaspTx(tx_index));
+                                tx_event.extend(ValidMaspTx(tx_index));
                             }
                             changed_keys
                                 .extend(result.changed_keys.iter().cloned());
@@ -435,7 +432,7 @@ where
                         }
                         self.state.commit_tx();
                         if !tx_event.contains_key("code") {
-                            tx_event.extend(WithResultCode(ResultCode::Ok));
+                            tx_event.extend(Code(ResultCode::Ok));
                             self.state
                                 .in_mem_mut()
                                 .block
@@ -450,9 +447,7 @@ where
                                 .iter()
                                 .cloned()
                                 .map(|ibc_event| {
-                                    ibc_event
-                                        .compose(WithBlockHeight(height))
-                                        .into()
+                                    ibc_event.with(Height(height)).into()
                                 })
                                 // eth bridge events
                                 .chain(
@@ -481,14 +476,12 @@ where
 
                         stats.increment_rejected_txs();
                         self.state.drop_tx();
-                        tx_event.extend(WithResultCode(ResultCode::InvalidTx));
+                        tx_event.extend(Code(ResultCode::InvalidTx));
                     }
                     tx_event
                         .extend(WithGasUsed(result.gas_used))
-                        .extend(WithInfo(
-                            "Check inner_tx for result.".to_string(),
-                        ))
-                        .extend(WithInnerTx(&result));
+                        .extend(Info("Check inner_tx for result.".to_string()))
+                        .extend(InnerTx(&result));
                 }
                 Err(msg) => {
                     tracing::info!(
@@ -533,23 +526,21 @@ where
 
                     tx_event
                         .extend(WithGasUsed(tx_gas_meter.get_tx_consumed_gas()))
-                        .extend(WithInfo(msg.to_string()));
+                        .extend(Info(msg.to_string()));
 
                     if let EventType::Accepted = tx_event.event_type {
                         // If wrapper, invalid tx error code
-                        tx_event.extend(WithResultCode(ResultCode::InvalidTx));
+                        tx_event.extend(Code(ResultCode::InvalidTx));
                         // The fee unshield operation could still have been
                         // committed
                         if wrapper_args
                             .expect("Missing required wrapper arguments")
                             .is_committed_fee_unshield
                         {
-                            tx_event.extend(WithValidMaspTx(tx_index));
+                            tx_event.extend(ValidMaspTx(tx_index));
                         }
                     } else {
-                        tx_event.extend(WithResultCode(
-                            ResultCode::WasmRuntimeError,
-                        ));
+                        tx_event.extend(Code(ResultCode::WasmRuntimeError));
                     }
                 }
             }
