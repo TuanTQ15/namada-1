@@ -1931,7 +1931,7 @@ pub async fn build_vote_proposal(
         voter_address,
         tx_code_path,
     }: &args::VoteProposal,
-    epoch: Epoch,
+    current_epoch: Epoch,
 ) -> Result<(Tx, SigningTxData)> {
     let default_signer = Some(voter_address.clone());
     let signing_data = signing::aux_signing_data(
@@ -1961,7 +1961,7 @@ pub async fn build_vote_proposal(
     let is_validator =
         rpc::is_validator(context.client(), voter_address).await?;
 
-    if !proposal.can_be_voted(epoch, is_validator) {
+    if !proposal.can_be_voted(current_epoch, is_validator) {
         if tx.force {
             eprintln!("Invalid proposal {} vote period.", proposal_id);
         } else {
@@ -1971,7 +1971,7 @@ pub async fn build_vote_proposal(
         }
     }
 
-    let delegations = rpc::get_delegators_delegation_at(
+    let delegations = rpc::get_delegations_of_delegator_at(
         context.client(),
         voter_address,
         proposal.voting_start_epoch,
