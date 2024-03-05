@@ -424,9 +424,10 @@ where
                     && are_continuous_fundings_unique
                     && are_targets_unique)
             }
-            // default proposal condition are checked already for all other proposals
-            // default_with_wasm proposal need to check only for valid code
-            _ => Ok(true), 
+            // default proposal condition are checked already for all other
+            // proposals default_with_wasm proposal need to check
+            // only for valid code
+            _ => Ok(true),
         }
     }
 
