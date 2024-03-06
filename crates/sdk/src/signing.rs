@@ -1276,7 +1276,7 @@ pub async fn to_ledger_vector(
             format!("Vote : {}", LedgerProposalVote(&vote_proposal.vote)),
             format!("Voter : {}", vote_proposal.voter),
         ]);
-        for delegation in &vote_proposal.delegations {
+        for delegation in &vote_proposal.delegation_validators {
             tv.output.push(format!("Delegation : {}", delegation));
         }
 
@@ -1285,7 +1285,7 @@ pub async fn to_ledger_vector(
             format!("Vote : {}", LedgerProposalVote(&vote_proposal.vote)),
             format!("Voter : {}", vote_proposal.voter),
         ]);
-        for delegation in vote_proposal.delegations {
+        for delegation in vote_proposal.delegation_validators {
             tv.output_expert
                 .push(format!("Delegation : {}", delegation));
         }
