@@ -1961,6 +1961,26 @@ pub async fn build_vote_proposal(
     let is_validator =
         rpc::is_validator(context.client(), voter_address).await?;
 
+    // Prevent jailed or inactive validators from voting
+    if is_validator && !tx.force {
+        let state = rpc::get_validator_state(
+            context.client(),
+            voter_address,
+            Some(current_epoch),
+        )
+        .await?;
+        if matches!(
+            state,
+            Some(ValidatorState::Jailed) | Some(ValidatorState::Inactive)
+        ) {
+            return Err(Error::from(TxSubmitError::CannotVoteInGovernance(
+                voter_address.clone(),
+                current_epoch,
+            )));
+        }
+    }
+
+    // Check if the voting period is still valid for the voter
     if !proposal.can_be_voted(current_epoch, is_validator) {
         if tx.force {
             eprintln!("Invalid proposal {} vote period.", proposal_id);
@@ -1971,20 +1991,38 @@ pub async fn build_vote_proposal(
         }
     }
 
-    let delegations = rpc::get_delegations_of_delegator_at(
+    // Get active valid validators with whom the voter has delegations (bonds)
+    let delegation_vals = rpc::get_delegation_validators(
         context.client(),
         voter_address,
         proposal.voting_start_epoch,
     )
-    .await?
-    .keys()
-    .cloned()
-    .collect::<Vec<Address>>();
+    .await?;
 
-    if delegations.is_empty() {
-        return Err(Error::Other(
-            "Voter address must have delegations".to_string(),
-        ));
+    let mut delegation_validators = Vec::<Address>::new();
+    for validator in delegation_vals {
+        let val_state = rpc::get_validator_state(
+            context.client(),
+            &validator,
+            Some(current_epoch),
+        )
+        .await
+        .expect("Expected to find the state of the validator");
+        if !matches!(
+            val_state,
+            Some(ValidatorState::Jailed) | Some(ValidatorState::Inactive)
+        ) {
+            continue;
+        }
+        delegation_validators.push(validator);
+    }
+
+    // Check that there are delegations to vote with
+    if delegation_validators.is_empty() && !tx.force {
+        return Err(Error::from(TxSubmitError::NoDelegationsFound(
+            voter_address.clone(),
+            current_epoch,
+        )));
     }
 
     let data = VoteProposalData {
