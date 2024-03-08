@@ -92,9 +92,8 @@ fn validate_tx(
         verifiers
     );
 
-    let valid_sig = Lazy::new(|| {
-        matches!(verify_signatures(ctx, &tx_data, &addr), Ok(true))
-    });
+    let valid_sig =
+        Lazy::new(|| matches!(verify_signatures(ctx, &tx_data, &addr), Ok(())));
 
     for key in keys_changed.iter() {
         let key_type: KeyType = key.into();
@@ -365,7 +364,7 @@ mod tests {
         vp_host_env::init();
 
         assert!(
-            validate_tx(&CTX, tx_data, addr, keys_changed, verifiers).unwrap()
+            validate_tx(&CTX, tx_data, addr, keys_changed, verifiers).is_ok()
         );
     }
 
@@ -420,7 +419,7 @@ mod tests {
         vp_host_env::set(vp_env);
         assert!(
             validate_tx(&CTX, tx_data, vp_owner, keys_changed, verifiers)
-                .unwrap()
+                .is_ok()
         );
     }
 
@@ -474,8 +473,8 @@ mod tests {
         let verifiers: BTreeSet<Address> = BTreeSet::default();
         vp_host_env::set(vp_env);
         assert!(
-            !validate_tx(&CTX, tx_data, vp_owner, keys_changed, verifiers)
-                .unwrap()
+            validate_tx(&CTX, tx_data, vp_owner, keys_changed, verifiers)
+                .is_err()
         );
     }
 
@@ -544,7 +543,7 @@ mod tests {
         vp_host_env::set(vp_env);
         assert!(
             validate_tx(&CTX, signed_tx, vp_owner, keys_changed, verifiers)
-                .unwrap()
+                .is_ok()
         );
     }
 
@@ -623,8 +622,8 @@ mod tests {
         let verifiers: BTreeSet<Address> = BTreeSet::default();
         vp_host_env::set(vp_env);
         assert!(
-            !validate_tx(&CTX, tx_data, vp_owner, keys_changed, verifiers)
-                .unwrap()
+            validate_tx(&CTX, tx_data, vp_owner, keys_changed, verifiers)
+                .is_err()
         );
     }
 
@@ -708,8 +707,8 @@ mod tests {
         let verifiers: BTreeSet<Address> = BTreeSet::default();
         vp_host_env::set(vp_env);
         assert!(
-            !validate_tx(&CTX, tx_data, vp_owner, keys_changed, verifiers)
-                .unwrap()
+            validate_tx(&CTX, tx_data, vp_owner, keys_changed, verifiers)
+                .is_err()
         );
     }
 
@@ -799,8 +798,8 @@ mod tests {
         let verifiers: BTreeSet<Address> = BTreeSet::default();
         vp_host_env::set(vp_env);
         assert!(
-            !validate_tx(&CTX, tx_data, validator, keys_changed, verifiers)
-                .unwrap()
+            validate_tx(&CTX, tx_data, validator, keys_changed, verifiers)
+                .is_err()
         );
     }
 
@@ -895,7 +894,7 @@ mod tests {
         vp_host_env::set(vp_env);
         assert!(
             validate_tx(&CTX, signed_tx, vp_owner, keys_changed, verifiers)
-                .unwrap()
+                .is_ok()
         );
     }
 
@@ -990,7 +989,7 @@ mod tests {
         vp_host_env::set(vp_env);
         assert!(
             validate_tx(&CTX, signed_tx, vp_owner, keys_changed, verifiers)
-                .unwrap()
+                .is_ok()
         );
     }
 
@@ -1096,7 +1095,7 @@ mod tests {
         vp_host_env::set(vp_env);
         assert!(
             validate_tx(&CTX, signed_tx, validator, keys_changed, verifiers)
-                .unwrap()
+                .is_ok()
         );
     }
 
@@ -1147,7 +1146,7 @@ mod tests {
         vp_host_env::set(vp_env);
         assert!(
             validate_tx(&CTX, tx_data, vp_owner, keys_changed, verifiers)
-                .unwrap()
+                .is_ok()
         );
     }
 
@@ -1201,7 +1200,7 @@ mod tests {
                 vp_env.all_touched_storage_keys();
             let verifiers: BTreeSet<Address> = BTreeSet::default();
             vp_host_env::set(vp_env);
-            assert!(!validate_tx(&CTX, tx_data, vp_owner, keys_changed, verifiers).unwrap());
+            assert!(validate_tx(&CTX, tx_data, vp_owner, keys_changed, verifiers).is_err());
         }
     }
 
@@ -1253,7 +1252,7 @@ mod tests {
                 vp_env.all_touched_storage_keys();
                 let verifiers: BTreeSet<Address> = BTreeSet::default();
                 vp_host_env::set(vp_env);
-                assert!(validate_tx(&CTX, signed_tx, vp_owner, keys_changed, verifiers).unwrap());
+                assert!(validate_tx(&CTX, signed_tx, vp_owner, keys_changed, verifiers).is_ok());
             }
         }
 
@@ -1290,8 +1289,8 @@ mod tests {
         let verifiers: BTreeSet<Address> = BTreeSet::default();
         vp_host_env::set(vp_env);
         assert!(
-            !validate_tx(&CTX, tx_data, vp_owner, keys_changed, verifiers)
-                .unwrap()
+            validate_tx(&CTX, tx_data, vp_owner, keys_changed, verifiers)
+                .is_err()
         );
     }
 
@@ -1342,7 +1341,7 @@ mod tests {
         vp_host_env::set(vp_env);
         assert!(
             validate_tx(&CTX, signed_tx, vp_owner, keys_changed, verifiers)
-                .unwrap()
+                .is_ok()
         );
     }
 
@@ -1398,7 +1397,7 @@ mod tests {
         vp_host_env::set(vp_env);
         assert!(
             validate_tx(&CTX, signed_tx, vp_owner, keys_changed, verifiers)
-                .unwrap()
+                .is_ok()
         );
     }
 }
