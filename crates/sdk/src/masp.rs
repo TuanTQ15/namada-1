@@ -756,7 +756,7 @@ impl<U: ShieldedUtils + MaybeSend + MaybeSync> ShieldedContext<U> {
             if let (start, end) = (chunk.first().copied(), chunk.last().copied()) {
                 let client = client.clone();
                 let logger = logger.clone();
-                let handle = tokio::spawn(async move {
+                let handle = spawn(async move {
                     self.fetch_shielded_transfers(client, logger, start, end).await
                 });
                 handles.push(handle);
