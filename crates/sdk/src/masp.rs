@@ -69,6 +69,7 @@ use sha2::Digest;
 use thiserror::Error;
 use token::storage_key::{balance_key, is_any_shielded_action_balance_key};
 use token::Amount;
+use tokio::spawn;
 
 use crate::error::{Error, PinnedBalanceError, QueryError};
 use crate::io::Io;
