@@ -741,15 +741,25 @@ impl<U: ShieldedUtils + MaybeSend + MaybeSync> ShieldedContext<U> {
             std::cmp::min(last_witnessed_tx, least_idx).map(|ix| ix.height);
         // Load all transactions accepted until this point
         // N.B. the cache is a hash map
-        self.unscanned.extend(
-            self.fetch_shielded_transfers(
-                client,
-                logger,
-                start_idx,
-                last_query_height,
-            )
-            .await?,
-        );
+        let range = start_idx..=last_query_height;
+        let chunk_size = ((last_query_height - start_idx) / 20) as usize;
+        let mut handles = vec![];
+        
+        for chunk in range.collect::<Vec<_>>().chunks(chunk_size) {
+            if let (start, end) = (chunk.first().copied(), chunk.last().copied()) {
+                let client = client.clone();
+                let logger = logger.clone();
+                let handle = tokio::spawn(async move {
+                    self.fetch_shielded_transfers(client, logger, start, end).await
+                });
+                handles.push(handle);
+            }
+        }
+        
+        for handle in handles {
+            let result = handle.await??;
+            self.unscanned.extend(result);
+        }
         // persist the cache in case of interruptions.
         let _ = self.save().await;
 
