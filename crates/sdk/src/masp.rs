@@ -69,7 +69,6 @@ use sha2::Digest;
 use thiserror::Error;
 use token::storage_key::{balance_key, is_any_shielded_action_balance_key};
 use token::Amount;
-use tokio::task::spawn;
 
 use crate::error::{Error, PinnedBalanceError, QueryError};
 use crate::io::Io;
@@ -756,7 +755,7 @@ impl<U: ShieldedUtils + MaybeSend + MaybeSync> ShieldedContext<U> {
             if let (start, end) = (chunk.first().copied(), chunk.last().copied()) {
                 let client = client.clone();
                 let logger = logger.clone();
-                let handle = spawn(async move {
+                let handle = tokio::task::spawn(async move {
                     self.fetch_shielded_transfers(client, logger, start, end).await
                 });
                 handles.push(handle);
