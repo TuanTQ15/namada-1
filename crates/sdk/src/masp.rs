@@ -742,8 +742,14 @@ impl<U: ShieldedUtils + MaybeSend + MaybeSync> ShieldedContext<U> {
             std::cmp::min(last_witnessed_tx, least_idx).map(|ix| ix.height);
         // Load all transactions accepted until this point
         // N.B. the cache is a hash map
-        let range = start_idx..=last_query_height;
-        let chunk_size = ((last_query_height - start_idx) / 20) as usize;
+        let range = match (last_query_height, start_idx) {
+            (Some(lqh), Some(si)) => (si.0..=lqh.0).collect::<Vec<_>>(),
+            _ => vec![], // or some other default value
+        };
+        let chunk_size = match (last_query_height, start_idx) {
+            (Some(lqh), Some(si)) => ((lqh - si) / 20) as usize,
+            _ => 0, // or some other default value
+        };
         let mut handles = vec![];
         
         for chunk in range.collect::<Vec<_>>().chunks(chunk_size) {
